@@ -1,0 +1,57 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+}
+
+model Circular {
+  id          String       @id @default(uuid())
+  title       String
+  uploadDate  DateTime     @default(now())
+  status      String       @default("PROCESSING") // PROCESSING, COMPLETED, FAILED
+  obligations Obligation[]
+}
+
+model Obligation {
+  id              String   @id @default(uuid())
+  circularId      String
+  ruleId          String
+  description     String
+  appliesTo       String
+  department      String
+  deadline        String?
+  priority        String
+  penalty         String?
+  confidenceScore Float
+  sourcePage      Int?
+  sourceParagraph String?
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  
+  circular Circular @relation(fields: [circularId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id           String   @id @default(uuid())
+  title        String
+  owner        String
+  department   String
+  priority     String
+  dueDate      DateTime?
+  status       String   @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
+  obligationId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  targetId  String
+  userId    String   @default("system")
+  timestamp DateTime @default(now())
+}
