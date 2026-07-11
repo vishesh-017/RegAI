@@ -7,7 +7,6 @@ generator client {
   provider             = "prisma-client-py"
   interface            = "asyncio"
   recursive_type_depth = 5
-  output               = "C:/Users/MOHIT/AppData/Local/Programs/Python/Python313/Lib/site-packages/prisma"
 }
 
 model Circular {

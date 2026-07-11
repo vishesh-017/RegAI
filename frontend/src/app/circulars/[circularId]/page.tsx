@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import CommandCenterClient from "./CommandCenterClient";
 
-
 export default async function CircularCommandCenterPage({ params }: { params: { circularId: string } }) {
   const session = await getServerSession(authOptions);
   const orgId = session?.user?.organizationId as string;
@@ -35,15 +34,17 @@ export default async function CircularCommandCenterPage({ params }: { params: { 
     redirect("/circulars");
   }
 
-  const auditLogs = await prisma.auditLog.findMany({
+  // Safe checks to prevent crash if lists are empty
+  const obligationIds = circular.obligations.map(o => o.id);
+  const auditLogs = obligationIds.length > 0 ? await prisma.auditLog.findMany({
     where: {
       organizationId: dbOrg.id,
       entityType: 'Obligation',
-      entityId: { in: circular.obligations.map(o => o.id) }
+      entityId: { in: obligationIds }
     },
     orderBy: { timestamp: 'desc' },
     include: { performedBy: true }
-  });
+  }) : [];
 
   const regulatoryChanges = await prisma.regulatoryChange.findMany({
     where: { newObligation: { circularId: circular.id } },

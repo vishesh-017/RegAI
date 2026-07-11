@@ -183,7 +183,7 @@ function ComplianceOfficerDashboard({ data }: { data: DashboardData }) {
           <Link href="/circulars/upload">
             <button className="btn-primary px-5 py-2.5 text-sm flex items-center gap-2"><Upload className="h-4 w-4" /> Upload Circular</button>
           </Link>
-          <Link href="/circulars">
+          <Link href="/review-queue">
             <button className="px-5 py-2.5 text-sm flex items-center gap-2 border border-border rounded-lg hover:bg-muted transition-colors text-slate-200"><Search className="h-4 w-4" /> Review Queue</button>
           </Link>
         </div>
@@ -197,7 +197,7 @@ function ComplianceOfficerDashboard({ data }: { data: DashboardData }) {
             <p className="text-sm font-bold text-foreground">{data.pendingObligations} obligations awaiting your review</p>
             <p className="text-xs text-muted-foreground mt-0.5">AI-extracted items require human approval before workflow generation.</p>
           </div>
-          <Link href="/circulars">
+          <Link href="/review-queue">
             <button className="btn-primary px-4 py-2 text-sm">Review Now <ArrowRight className="h-3.5 w-3.5 inline ml-1" /></button>
           </Link>
         </div>
