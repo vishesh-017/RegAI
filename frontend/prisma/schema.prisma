@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Organization {
+  id                  String   @id @default(uuid())
+  clerkOrganizationId String?  @unique
+  name                String
+  organizationType    String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  users         User[]
+  circulars     Circular[]
+  obligations   Obligation[]
+  workflowTasks WorkflowTask[]
+  reports       Report[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+}
+
+model User {
+  id             String   @id @default(uuid())
+  clerkUserId    String?  @unique
+  email          String   @unique
+  password       String
+  organizationId String
+  role           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  circulars      Circular[]     @relation("CircularCreator")
+  approvedObligs Obligation[]   @relation("ObligationApprover")
+  tasksOwned     WorkflowTask[] @relation("TaskOwner")
+  tasksCreated   WorkflowTask[] @relation("TaskCreator")
+  tasksApproved  WorkflowTask[] @relation("TaskApprover")
+  auditLogs      AuditLog[]     @relation("AuditLogPerformer")
+  reports        Report[]       @relation("ReportGenerator")
+  notifications  Notification[] @relation("NotificationRecipient")
+}
+
+model Circular {
+  id               String         @id @default(uuid())
+  organizationId   String
+  title            String
+  referenceNumber  String
+  issuingAuthority String
+  publicationDate  DateTime
+  effectiveDate    DateTime
+  circularType     String
+  sector           String // Comma separated
+  tags             String // Comma separated
+  summary          String?
+  status           String @default("Draft")
+  version          String
+  parentCircularId String?
+  documentUrl      String?
+  hash             String?
+  createdById      String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdBy      User         @relation("CircularCreator", fields: [createdById], references: [id])
+  parentCircular Circular?    @relation("CircularHistory", fields: [parentCircularId], references: [id])
+  childCirculars Circular[]   @relation("CircularHistory")
+  obligations    Obligation[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model Obligation {
+  id                 String    @id @default(uuid())
+  organizationId     String
+  circularId         String
+  ruleReference      String?
+  title              String
+  description        String
+  appliesTo          String // Comma separated
+  department         String?
+  priority           String  @default("Medium")
+  deadline           DateTime?
+  deadlineType       String?
+  penaltyDescription String?
+  penaltySeverity    String?
+  businessImpact     String?
+  recommendedAction  String?
+
+  // Trust Layer (AI Fields)
+  confidenceScore       Float?
+  reasoning             String?
+  sourceCitation        String?
+  sourcePage            Int?
+  sourceParagraph       Int?
+  humanApprovalRequired Boolean   @default(true)
+  aiModelVersion        String?
+  extractionTimestamp   DateTime?
+
+  // Review status
+  reviewStatus String @default("Pending")
+  approvedById String?
+  approvedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  circular     Circular     @relation(fields: [circularId], references: [id])
+  approvedBy   User?        @relation("ObligationApprover", fields: [approvedById], references: [id])
+
+  workflowTasks WorkflowTask[]
+
+  // Regulatory Changes references
+  asOldObligation RegulatoryChange[] @relation("OldObligation")
+  asNewObligation RegulatoryChange[] @relation("NewObligation")
+
+  @@index([organizationId])
+  @@index([circularId])
+  @@index([reviewStatus])
+}
+
+model RegulatoryChange {
+  id                   String     @id @default(uuid())
+  oldObligationId      String?
+  newObligationId      String
+  changeType           String
+  changeSummary        String
+  affectedDepartments  String // Comma separated
+  implementationImpact String?
+  estimatedEffort      String?
+  createdAt            DateTime   @default(now())
+
+  oldObligation Obligation? @relation("OldObligation", fields: [oldObligationId], references: [id])
+  newObligation Obligation  @relation("NewObligation", fields: [newObligationId], references: [id])
+
+  @@index([newObligationId])
+  @@index([oldObligationId])
+}
+
+model WorkflowTask {
+  id                   String     @id @default(uuid())
+  organizationId       String
+  obligationId         String
+  ownerId              String?
+  department           String?
+  status               String @default("Todo")
+  priority             String   @default("Medium")
+  dueDate              DateTime?
+  evidenceRequired     Boolean    @default(false)
+  completionPercentage Int        @default(0)
+  comments             String?
+  createdById          String
+  approvedById         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  obligation   Obligation   @relation(fields: [obligationId], references: [id])
+  owner        User?        @relation("TaskOwner", fields: [ownerId], references: [id])
+  createdBy    User         @relation("TaskCreator", fields: [createdById], references: [id])
+  approvedBy   User?        @relation("TaskApprover", fields: [approvedById], references: [id])
+
+  @@index([organizationId])
+  @@index([obligationId])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  entityType     String
+  entityId       String
+  action         String
+  oldValue       String? // JSON string
+  newValue       String? // JSON string
+  performedById  String
+  reason         String?
+  timestamp      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  performedBy  User         @relation("AuditLogPerformer", fields: [performedById], references: [id])
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+}
+
+model Report {
+  id             String   @id @default(uuid())
+  organizationId String
+  reportType     String
+  generatedById  String
+  reportUrl      String?
+  generatedAt    DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  generatedBy  User         @relation("ReportGenerator", fields: [generatedById], references: [id])
+
+  @@index([organizationId])
+}
+
+model Notification {
+  id             String   @id @default(uuid())
+  organizationId String
+  recipientId    String
+  type           String
+  title          String
+  message        String
+  readStatus     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  recipient    User         @relation("NotificationRecipient", fields: [recipientId], references: [id])
+
+  @@index([organizationId])
+  @@index([recipientId])
+}

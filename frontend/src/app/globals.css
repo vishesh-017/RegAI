@@ -1,0 +1,214 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: oklch(0.99 0 0);
+    --foreground: oklch(0.14 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.14 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.14 0 0);
+    --primary: oklch(0.14 0 0);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.96 0 0);
+    --secondary-foreground: oklch(0.14 0 0);
+    --muted: oklch(0.96 0 0);
+    --muted-foreground: oklch(0.45 0 0);
+    --accent: oklch(0.96 0 0);
+    --accent-foreground: oklch(0.14 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.92 0 0);
+    --input: oklch(0.92 0 0);
+    --ring: oklch(0.14 0 0);
+    --radius: 0.5rem;
+    --sidebar: oklch(0.99 0 0);
+    --sidebar-foreground: oklch(0.14 0 0);
+    --sidebar-primary: oklch(0.14 0 0);
+    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-accent: oklch(0.96 0 0);
+    --sidebar-accent-foreground: oklch(0.14 0 0);
+    --sidebar-border: oklch(0.92 0 0);
+    --sidebar-ring: oklch(0.14 0 0);
+  }
+  .dark {
+    --background: oklch(0.05 0 0);
+    --foreground: oklch(0.99 0 0);
+    --card: oklch(0.08 0 0);
+    --card-foreground: oklch(0.99 0 0);
+    --popover: oklch(0.08 0 0);
+    --popover-foreground: oklch(0.99 0 0);
+    --primary: oklch(0.99 0 0);
+    --primary-foreground: oklch(0.05 0 0);
+    --secondary: oklch(0.12 0 0);
+    --secondary-foreground: oklch(0.99 0 0);
+    --muted: oklch(0.12 0 0);
+    --muted-foreground: oklch(0.65 0 0);
+    --accent: oklch(0.12 0 0);
+    --accent-foreground: oklch(0.99 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(0.2 0 0);
+    --input: oklch(0.2 0 0);
+    --ring: oklch(0.8 0 0);
+    --sidebar: oklch(0.05 0 0);
+    --sidebar-foreground: oklch(0.99 0 0);
+    --sidebar-primary: oklch(0.99 0 0);
+    --sidebar-primary-foreground: oklch(0.05 0 0);
+    --sidebar-accent: oklch(0.12 0 0);
+    --sidebar-accent-foreground: oklch(0.99 0 0);
+    --sidebar-border: oklch(0.2 0 0);
+    --sidebar-ring: oklch(0.8 0 0);
+  }
+
+  * {
+    @apply border-border;
+    outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Skeleton loading shimmer */
+  .skeleton {
+    @apply bg-slate-200 dark:bg-slate-800 rounded-md animate-pulse;
+  }
+
+  /* Glass card effect */
+  .glass-card {
+    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm border border-white/20 dark:border-slate-700/50;
+  }
+
+  /* Premium card hover */
+  .card-hover {
+    @apply transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  /* Smooth page entry — uses native keyframe, not tw-animate-css @apply */
+  .page-enter {
+    animation: page-in 0.45s ease-out both;
+  }
+
+  /* Status dot pulse */
+  .status-pulse {
+    @apply relative;
+  }
+
+  .status-pulse::before {
+    content: '';
+    @apply absolute inset-0 rounded-full animate-ping opacity-50;
+    animation-duration: 1.5s;
+  }
+
+  /* Custom scrollbar for sidebar & tables */
+  .custom-scroll::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scroll::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+  }
+  .custom-scroll::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-600;
+  }
+
+  /* Table row hover */
+  .table-row-hover {
+    @apply hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors duration-150;
+  }
+
+  /* Button shimmer effect on hover */
+  .btn-primary {
+    @apply relative overflow-hidden bg-primary text-primary-foreground rounded-lg font-medium transition-all duration-200 
+           hover:opacity-90 shadow-sm
+           active:scale-[0.98]
+           focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+  
+  .btn-secondary {
+    @apply relative overflow-hidden bg-secondary text-secondary-foreground rounded-lg font-medium transition-all duration-200 
+           hover:opacity-80 border border-border
+           active:scale-[0.98]
+           focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  /* Badge glow for critical status */
+  .badge-critical {
+    @apply animate-pulse ring-2 ring-red-500/20;
+  }
+
+  /* Number counter animation */
+  .counter-fade {
+    @apply transition-all duration-700 ease-out;
+  }
+
+  .input-field {
+    @apply block w-full rounded-lg border border-border 
+           px-3 py-2 text-sm 
+           bg-background 
+           text-foreground 
+           placeholder-muted-foreground 
+           shadow-sm 
+           transition-all duration-150
+           focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring 
+           dark:focus:border-primary dark:focus:ring-ring;
+  }
+
+  /* Section divider */
+  .section-divider {
+    @apply border-t border-slate-100 dark:border-slate-800/50 my-6;
+  }
+}
+
+/* Page transition wrapper */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-in {
+  animation: page-in 0.4s ease-out forwards;
+}
+
+/* Sidebar link active indicator */
+.sidebar-link-active {
+  position: relative;
+}
+.sidebar-link-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: #6366f1;
+  border-radius: 0 2px 2px 0;
+}
