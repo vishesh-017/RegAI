@@ -1,0 +1,34 @@
+# Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache & artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Databases
+*.db
+*.sqlite3
+
+# Environment configurations
+.env
+.env.local
+
+# Node/NextJS directories
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# OS metadata
+.DS_Store
+Thumbs.db
