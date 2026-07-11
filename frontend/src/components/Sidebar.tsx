@@ -48,7 +48,7 @@ export default function Sidebar() {
       <div className="flex h-16 shrink-0 items-center px-5 border-b border-slate-800/60">
         <Link href="/" className="flex items-center gap-2.5 group">
           <span className="bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-lg p-1.5 shadow-md shadow-indigo-800/40 group-hover:shadow-indigo-600/50 transition-shadow">
-            <FileText className="h-4 w-4 text-white" />
+            <img src="/logo.svg" className="h-4 w-4 text-white" alt="BrahmOS" />
           </span>
           <span className="text-lg font-bold tracking-tight text-white">BrahmOS</span>
         </Link>

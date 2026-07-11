@@ -12,7 +12,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
               <span className="bg-indigo-600 rounded-md p-1">
-                <FileText className="h-5 w-5 text-white" />
+                <img src="/logo.svg" className="h-5 w-5 text-white" alt="BrahmOS" />
               </span>
               <span className="text-xl font-extrabold tracking-tight text-foreground">BrahmOS</span>
             </div>
@@ -261,7 +261,7 @@ export default function LandingPage() {
           <div className="col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <span className="bg-primary rounded-md p-1">
-                <FileText className="h-5 w-5 text-primary-foreground" />
+                <img src="/logo.svg" className="h-5 w-5 text-primary-foreground" alt="BrahmOS" />
               </span>
               <span className="text-xl font-extrabold tracking-tight text-foreground">BrahmOS</span>
             </div>
@@ -280,14 +280,14 @@ export default function LandingPage() {
           <div>
             <h4 className="text-foreground font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
-              <li><a href="#" className="hover:text-foreground transition-colors">Contact</a></li>
-              <li><a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a></li>
+              <li><Link href="/about" className="hover:text-foreground transition-colors">About</Link></li>
+              <li><Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
+              <li><Link href="/privacy-policy" className="hover:text-foreground transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pt-8 border-t border-border text-xs text-center uppercase tracking-widest text-muted-foreground">
-          &copy; {new Date().getFullYear()} BrahmOS Inc. All rights reserved. Built for the Google DeepMind AI Hackathon.
+          &copy; {new Date().getFullYear()} BrahmOS Inc. All rights reserved.
         </div>
       </footer>
     </div>
