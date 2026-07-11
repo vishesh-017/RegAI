@@ -96,5 +96,17 @@ export async function uploadCircularAction(formData: FormData) {
     }
   });
 
+  // Write audit trail log for ingestion (Step 2)
+  await prisma.auditLog.create({
+    data: {
+      organizationId: dbOrg.id,
+      entityType: 'Circular',
+      entityId: circular.id,
+      action: 'INGESTED',
+      performedById: dbUser.id,
+      reason: `Uploaded reference: ${parsed.referenceNumber}`
+    }
+  });
+
   return { success: true, circularId: circular.id };
 }

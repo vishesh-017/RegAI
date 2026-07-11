@@ -1,0 +1,11 @@
+langchain==0.1.13
+langgraph==0.0.32
+langchain-google-genai==1.0.1
+pydantic>=2
+python-dotenv
+pypdf
+chromadb
+fastapi
+uvicorn
+python-multipart
+prisma

@@ -7,6 +7,7 @@ import { LayoutDashboard, FileText, CheckSquare, GitCompare, Settings, BookOpen,
 import { signOut, useSession } from "next-auth/react"
 import { LogOut, User } from "lucide-react"
 import { useTheme } from "next-themes"
+import { getRoleConfig } from "@/lib/roles"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, group: "Overview" },
@@ -33,6 +34,15 @@ export default function Sidebar() {
     setMounted(true)
   }, [])
 
+  // Get role config for current user
+  const userRole = (session?.user as any)?.role || "Admin"
+  const roleConfig = getRoleConfig(userRole)
+  
+  // Filter navigation by role
+  const filteredNavigation = navigation.filter(item => 
+    roleConfig.sidebarItems.includes(item.name)
+  )
+
   const triggerSearch = () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { 'key': 'k', 'ctrlKey': true }));
   };
@@ -41,6 +51,16 @@ export default function Sidebar() {
     if (item.name === "Circulars") return pathname.startsWith("/circulars");
     return pathname === item.href;
   };
+
+  // Role badge colors
+  const roleBadgeColors: Record<string, string> = {
+    "Admin": "bg-indigo-600/30 border-indigo-500/30 text-indigo-400",
+    "Compliance Officer": "bg-emerald-600/30 border-emerald-500/30 text-emerald-400",
+    "Manager": "bg-blue-600/30 border-blue-500/30 text-blue-400",
+    "Auditor": "bg-amber-600/30 border-amber-500/30 text-amber-400",
+  }
+
+  const badgeColor = roleBadgeColors[userRole] || roleBadgeColors["Admin"]
 
   return (
     <div className="flex h-full w-64 flex-col bg-slate-950 text-slate-100 select-none border-r border-slate-800/50">
@@ -70,11 +90,12 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation — filtered by role */}
       <div className="flex flex-1 flex-col overflow-y-auto custom-scroll py-2">
         <nav className="flex-1 px-3 pb-4">
           {groups.map((group) => {
-            const items = navigation.filter(n => n.group === group);
+            const items = filteredNavigation.filter(n => n.group === group);
+            if (items.length === 0) return null; // Hide empty groups
             return (
               <div key={group} className="mb-5">
                 <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
@@ -145,17 +166,21 @@ export default function Sidebar() {
           ) : null}
         </div>
 
-        <Link
-          href="/settings"
-          className={`group flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-all duration-150 ${
-            pathname === '/settings' 
-              ? 'bg-slate-800 text-white' 
-              : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
-          }`}
-        >
-          <Settings className="mr-2.5 h-4 w-4 text-slate-500 group-hover:text-slate-300" />
-          Settings
-        </Link>
+        {/* Settings — only for Admin */}
+        {roleConfig.canEditSettings && (
+          <Link
+            href="/settings"
+            className={`group flex items-center rounded-lg px-2.5 py-2 text-sm font-medium transition-all duration-150 ${
+              pathname === '/settings' 
+                ? 'bg-slate-800 text-white' 
+                : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200'
+            }`}
+          >
+            <Settings className="mr-2.5 h-4 w-4 text-slate-500 group-hover:text-slate-300" />
+            Settings
+          </Link>
+        )}
+
         <div className="flex items-center justify-between rounded-lg px-2.5 py-2 hover:bg-slate-800/50 transition-colors cursor-pointer">
           <div className="flex items-center gap-2 min-w-0">
             <div className="h-7 w-7 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center shrink-0">
@@ -163,7 +188,9 @@ export default function Sidebar() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-medium text-white truncate">{session?.user?.email?.split('@')[0] ?? 'Account'}</p>
-              <p className="text-[10px] text-slate-500 capitalize">{session?.user?.role?.toLowerCase() ?? 'user'}</p>
+              <p className={`text-[10px] font-semibold capitalize px-1.5 py-0.5 rounded-full border inline-block mt-0.5 ${badgeColor}`}>
+                {userRole.toLowerCase()}
+              </p>
             </div>
           </div>
           <button

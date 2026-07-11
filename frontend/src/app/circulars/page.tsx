@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Plus, FileText, Upload, ArrowRight, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Metadata } from "next";
+import { hasPermission } from "@/lib/roles";
 
 export const metadata: Metadata = {
   title: "Circulars Hub | BrahmOS Compliance",
@@ -15,6 +16,7 @@ export const metadata: Metadata = {
 export default async function CircularsPage() {
   const session = await getServerSession(authOptions);
   const orgId = session?.user?.organizationId as string;
+  const role = (session?.user as any)?.role || "Admin";
   
   if (!orgId) {
     redirect("/onboarding");
@@ -39,6 +41,8 @@ export default async function CircularsPage() {
     Archived: { label: "Archived", cls: "border-border text-muted-foreground bg-background" },
   };
 
+  const canUpload = hasPermission(role, "canUploadCirculars");
+
   return (
     <div className="flex flex-col gap-8 max-w-[1400px] mx-auto page-enter">
       {/* Header */}
@@ -49,15 +53,17 @@ export default async function CircularsPage() {
             <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Circulars Hub</h1>
           </div>
           <p className="text-muted-foreground text-sm">
-            {circulars.length > 0 ? `${circulars.length} circulars tracked` : "No circulars yet — start by uploading one."}
+            {circulars.length > 0 ? `${circulars.length} circulars tracked` : "No circulars yet."}
           </p>
         </div>
-        <Link href="/circulars/upload">
-          <button className="btn-primary px-5 py-2.5 text-sm flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            Upload Circular
-          </button>
-        </Link>
+        {canUpload && (
+          <Link href="/circulars/upload">
+            <button className="btn-primary px-5 py-2.5 text-sm flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Upload Circular
+            </button>
+          </Link>
+        )}
       </div>
 
       {/* Table */}
@@ -71,12 +77,14 @@ export default async function CircularsPage() {
             <p className="text-sm text-muted-foreground max-w-sm mb-8">
               Start by uploading your first regulatory document. BrahmOS will automatically extract obligations and generate workflows.
             </p>
-            <Link href="/circulars/upload">
-              <button className="btn-primary px-6 py-2.5 text-sm flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Upload first circular
-              </button>
-            </Link>
+            {canUpload && (
+              <Link href="/circulars/upload">
+                <button className="btn-primary px-6 py-2.5 text-sm flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Upload first circular
+                </button>
+              </Link>
+            )}
           </div>
         ) : (
           <>

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../src/lib/prisma";
 import bcrypt from "bcryptjs";
 
 
@@ -58,12 +58,12 @@ async function main() {
   const demoHash = await bcrypt.hash("demo123", 10);
 
   const [admin, compliance, manager, auditor] = await Promise.all([
-    prisma.user.create({ data: { email: "admin@demo.com", password: adminHash, role: "Admin", organizationId: org.id, createdAt: daysAgo(90) } }),
-    prisma.user.create({ data: { email: "compliance@demo.com", password: demoHash, role: "Compliance Officer", organizationId: org.id, createdAt: daysAgo(88) } }),
-    prisma.user.create({ data: { email: "manager@demo.com", password: demoHash, role: "Manager", organizationId: org.id, createdAt: daysAgo(85) } }),
-    prisma.user.create({ data: { email: "auditor@demo.com", password: demoHash, role: "Auditor", organizationId: org.id, createdAt: daysAgo(80) } }),
+    prisma.user.create({ data: { email: "admin@demo.com", password: adminHash, role: "Admin", department: "Executive", organizationId: org.id, createdAt: daysAgo(90) } }),
+    prisma.user.create({ data: { email: "compliance@demo.com", password: demoHash, role: "Compliance Officer", department: "Compliance", organizationId: org.id, createdAt: daysAgo(88) } }),
+    prisma.user.create({ data: { email: "manager@demo.com", password: demoHash, role: "Manager", department: "IT Security", organizationId: org.id, createdAt: daysAgo(85) } }),
+    prisma.user.create({ data: { email: "auditor@demo.com", password: demoHash, role: "Auditor", department: "Audit", organizationId: org.id, createdAt: daysAgo(80) } }),
   ]);
-  console.log(`✅ 4 users created`);
+  console.log(`✅ 4 users created with departments`);
 
   // -------------------------------------------------------------------------
   // 3. Circulars
@@ -309,6 +309,7 @@ async function main() {
     const obl = taskObligations[i % taskObligations.length];
     const status = taskStatuses[Math.floor(i / 10)]; // 10 tasks each status
     const daysOffset = Math.floor(Math.random() * 60) + 5;
+    const hasEvidence = i % 2 === 0;
     const task = await prisma.workflowTask.create({
       data: {
         organizationId: org.id,
@@ -319,6 +320,8 @@ async function main() {
         priority: pick(["High", "Medium", "Low", "Critical"]),
         dueDate: status === "Done" ? daysAgo(Math.floor(Math.random() * 20)) : daysFromNow(daysOffset),
         evidenceRequired: i % 3 === 0,
+        evidenceUrl: hasEvidence ? `https://s3.sebi-audit-logs.com/evidence-${i}.pdf` : null,
+        findings: i % 5 === 0 ? "Verified by CERT-In Auditor. Control is fully compliant." : null,
         completionPercentage: status === "Done" ? 100 : status === "In Progress" ? Math.floor(Math.random() * 70) + 20 : status === "In Review" ? 90 : Math.floor(Math.random() * 20),
         comments: pick(taskComments),
         createdById: admin.id,
@@ -328,7 +331,7 @@ async function main() {
     });
     allTasks.push(task);
   }
-  console.log(`✅ 40 workflow tasks created`);
+  console.log(`✅ 40 workflow tasks created with evidence and findings`);
 
   // -------------------------------------------------------------------------
   // 6. Audit Logs (20)

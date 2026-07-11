@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { getAIProvider } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "@/lib/notifications";
+import { hasPermission } from "@/lib/roles";
+
 
 function mapErrorToResponse(error: any) {
   let type = "UNKNOWN_ERROR";
@@ -46,6 +48,12 @@ export async function processCircularAIAction(circularId: string) {
   if (!orgId || !userId) {
     throw new Error("Unauthorized");
   }
+
+  const role = (session?.user as any)?.role;
+  if (!hasPermission(role, "canProcessAI")) {
+    throw new Error("Forbidden: Role lacks permission to process AI actions");
+  }
+
 
   const circular = await prisma.circular.findUnique({
     where: { id: circularId }
@@ -140,27 +148,113 @@ export async function processCircularAIAction(circularId: string) {
 export async function approveObligationAction(obligationId: string, comment?: string) {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id as string;
+  const role = (session?.user as any)?.role;
+
+  if (!hasPermission(role, "canApproveObligations")) {
+    throw new Error("Forbidden: Role lacks permission to approve obligations");
+  }
+
   const dbUser = await prisma.user.findUnique({ where: { id: userId } });
-  
+  if (!dbUser) throw new Error("User not found");
+
+  const originalObligation = await prisma.obligation.findUnique({
+    where: { id: obligationId }
+  });
+  if (!originalObligation) throw new Error("Obligation not found");
+
+  // Gap Analysis Step
+  // Check if there are any existing workflow tasks or evidence records with the same department and matching title/subject
+  const existingControl = await prisma.workflowTask.findFirst({
+    where: {
+      organizationId: originalObligation.organizationId,
+      department: originalObligation.department,
+      status: "Done",
+      evidenceUrl: { not: null }
+    }
+  });
+
+  const gapStatus = existingControl ? "Fulfilled" : "Gap";
+
   const obs = await prisma.obligation.update({
     where: { id: obligationId },
     data: { 
-      reviewStatus: 'Approved',
-      approvedById: dbUser?.id,
+      reviewStatus: gapStatus === "Gap" ? "Gap" : "Approved",
+      approvedById: dbUser.id,
       approvedAt: new Date()
     }
   });
 
+  // Log audit entry for obligation approval
   await prisma.auditLog.create({
     data: {
       organizationId: obs.organizationId,
       entityType: 'Obligation',
       entityId: obs.id,
       action: 'APPROVED',
-      performedById: dbUser!.id,
-      reason: comment || null,
+      performedById: dbUser.id,
+      reason: comment || `Approved. Gap Analysis result: ${gapStatus}`
     }
   });
+
+  // Log audit trail for Gap Analysis Run
+  await prisma.auditLog.create({
+    data: {
+      organizationId: obs.organizationId,
+      entityType: 'Obligation',
+      entityId: obs.id,
+      action: 'GAP_ANALYSIS_RUN',
+      performedById: dbUser.id,
+      reason: `Gap Status: ${gapStatus}. Reasoning: ${existingControl ? 'Existing compliance control & evidence matching department found.' : 'No existing controls or evidence logs found for department.'}`
+    }
+  });
+
+  // Step 5: If gap status is gap, auto-generate WorkflowTask tagged with department
+  if (gapStatus === "Gap") {
+    // Determine target manager in the department to assign
+    const deptManager = await prisma.user.findFirst({
+      where: {
+        organizationId: obs.organizationId,
+        role: "Manager",
+        department: obs.department
+      }
+    });
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        organizationId: obs.organizationId,
+        obligationId: obs.id,
+        department: obs.department,
+        priority: obs.priority,
+        dueDate: obs.deadline,
+        evidenceRequired: true,
+        createdById: dbUser.id,
+        ownerId: deptManager?.id || null, // Auto-assign to matching department manager if exists
+        comments: `AI Action Plan: Implement controls for "${obs.title}"`
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        organizationId: obs.organizationId,
+        entityType: 'WorkflowTask',
+        entityId: task.id,
+        action: 'TASK_CREATED',
+        performedById: dbUser.id,
+        reason: `Auto-generated task for ${obs.department} department due to detected gap.`
+      }
+    });
+
+    // Notify manager
+    if (deptManager) {
+      await createNotification(
+        obs.organizationId,
+        deptManager.id,
+        'Task Assigned',
+        'New Obligation Workflow Task',
+        `A new compliance task "${obs.title}" has been assigned to your department due to a detected gap. Please assign team members.`
+      );
+    }
+  }
 
   revalidatePath(`/circulars`);
 }
@@ -168,6 +262,12 @@ export async function approveObligationAction(obligationId: string, comment?: st
 export async function rejectObligationAction(obligationId: string, comment?: string) {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id as string;
+  const role = (session?.user as any)?.role;
+
+  if (!hasPermission(role, "canRejectObligations")) {
+    throw new Error("Forbidden: Role lacks permission to reject obligations");
+  }
+
   const dbUser = await prisma.user.findUnique({ where: { id: userId } });
 
   const obs = await prisma.obligation.update({
@@ -360,14 +460,143 @@ export async function updateTaskStatusAction(taskId: string, status: string) {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id as string;
   const orgId = session?.user?.organizationId as string;
+  const role = (session?.user as any)?.role;
+
   if (!userId || !orgId) throw new Error("Unauthorized");
+
+  if (!hasPermission(role, "canManageTasks")) {
+    throw new Error("Forbidden: Role lacks permission to update task status");
+  }
+
+  const task = await prisma.workflowTask.findUnique({ where: { id: taskId } });
+  if (!task || task.organizationId !== orgId) throw new Error("Unauthorized or not found");
+
+  const updatedTask = await prisma.workflowTask.update({
+    where: { id: taskId },
+    data: { status }
+  });
+
+  // Create audit log entry
+  await prisma.auditLog.create({
+    data: {
+      organizationId: orgId,
+      entityType: 'WorkflowTask',
+      entityId: taskId,
+      action: 'TASK_STATUS_UPDATED',
+      performedById: userId,
+      reason: `Status updated to ${status}`
+    }
+  });
+
+  revalidatePath(`/act`);
+  revalidatePath(`/circulars`);
+}
+
+export async function assignTaskAction(taskId: string, ownerId: string) {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id as string;
+  const orgId = session?.user?.organizationId as string;
+  const role = (session?.user as any)?.role;
+
+  if (!userId || !orgId) throw new Error("Unauthorized");
+
+  if (!hasPermission(role, "canManageTasks")) {
+    throw new Error("Forbidden");
+  }
+
+  const task = await prisma.workflowTask.findUnique({ where: { id: taskId } });
+  if (!task || task.organizationId !== orgId) throw new Error("Unauthorized or not found");
+
+  const assignedUser = await prisma.user.findUnique({ where: { id: ownerId } });
+  if (!assignedUser) throw new Error("Assigned user not found");
+
+  await prisma.workflowTask.update({
+    where: { id: taskId },
+    data: { ownerId }
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId: orgId,
+      entityType: 'WorkflowTask',
+      entityId: taskId,
+      action: 'TASK_REASSIGNED',
+      performedById: userId,
+      reason: `Task assigned to ${assignedUser.email}`
+    }
+  });
+
+  revalidatePath(`/act`);
+}
+
+export async function uploadEvidenceAction(taskId: string, evidenceUrl: string) {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id as string;
+  const orgId = session?.user?.organizationId as string;
+  const role = (session?.user as any)?.role;
+
+  if (!userId || !orgId) throw new Error("Unauthorized");
+
+  if (!hasPermission(role, "canManageTasks")) {
+    throw new Error("Forbidden");
+  }
 
   const task = await prisma.workflowTask.findUnique({ where: { id: taskId } });
   if (!task || task.organizationId !== orgId) throw new Error("Unauthorized or not found");
 
   await prisma.workflowTask.update({
     where: { id: taskId },
-    data: { status }
+    data: { 
+      evidenceUrl,
+      status: "In Progress" // Ensure status is operational
+    }
   });
-  revalidatePath(`/circulars`);
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId: orgId,
+      entityType: 'WorkflowTask',
+      entityId: taskId,
+      action: 'TASK_EDITED',
+      performedById: userId,
+      reason: `Uploaded evidence: ${evidenceUrl}`
+    }
+  });
+
+  revalidatePath(`/act`);
 }
+
+export async function updateFindingsAction(taskId: string, findings: string) {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id as string;
+  const orgId = session?.user?.organizationId as string;
+  const role = (session?.user as any)?.role;
+
+  if (!userId || !orgId) throw new Error("Unauthorized");
+
+  if (role !== "Auditor" && role !== "Admin") {
+    throw new Error("Forbidden: Only Auditors can log findings");
+  }
+
+  const task = await prisma.workflowTask.findUnique({ where: { id: taskId } });
+  if (!task || task.organizationId !== orgId) throw new Error("Unauthorized or not found");
+
+  await prisma.workflowTask.update({
+    where: { id: taskId },
+    data: { findings }
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId: orgId,
+      entityType: 'WorkflowTask',
+      entityId: taskId,
+      action: 'TASK_EDITED',
+      performedById: userId,
+      reason: `Auditor logged findings: ${findings}`
+    }
+  });
+
+  revalidatePath(`/act`);
+}
+
