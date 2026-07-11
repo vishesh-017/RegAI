@@ -4,21 +4,45 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import TimelineClient from "./TimelineClient";
 
-
 export default async function TimelinePage() {
   const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
   const orgId = session?.user?.organizationId as string;
-  
-  if (!orgId) {
+  const role = (session?.user as any)?.role || "Admin";
+
+  if (!userId || !orgId) {
     redirect("/sign-in");
+  }
+
+  // Fetch current user details to get department
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { department: true }
+  });
+  const userDept = dbUser?.department || "";
+
+  // Scoped queries: Managers only see events related to their department
+  const oblWhere: any = {
+    organizationId: orgId,
+    deadline: { not: null }
+  };
+
+  const taskWhere: any = {
+    organizationId: orgId,
+    dueDate: { not: null }
+  };
+
+  if (role === "Manager" && userDept) {
+    oblWhere.department = userDept;
+    taskWhere.OR = [
+      { department: userDept },
+      { obligation: { department: userDept } }
+    ];
   }
 
   // Fetch Obligations with deadlines
   const obligations = await prisma.obligation.findMany({
-    where: { 
-      organizationId: orgId,
-      deadline: { not: null }
-    },
+    where: oblWhere,
     include: {
       circular: {
         select: { title: true, referenceNumber: true }
@@ -29,10 +53,7 @@ export default async function TimelinePage() {
 
   // Fetch WorkflowTasks with due dates
   const tasks = await prisma.workflowTask.findMany({
-    where: {
-      organizationId: orgId,
-      dueDate: { not: null }
-    },
+    where: taskWhere,
     include: {
       obligation: {
         select: { title: true, priority: true }

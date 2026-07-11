@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, FileText, CheckSquare, GitCompare, Settings, BookOpen, Calendar, PieChart, ShieldCheck, BarChart2, Bell, Search, Sun, Moon } from "lucide-react"
+import { LayoutDashboard, FileText, CheckSquare, GitCompare, Settings, BookOpen, Calendar, PieChart, ShieldCheck, BarChart2, Bell, Search, Sun, Moon, Eye } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { LogOut, User } from "lucide-react"
 import { useTheme } from "next-themes"
@@ -16,6 +16,7 @@ const navigation = [
   { name: "Circulars", href: "/circulars", icon: FileText, group: "Intelligence" },
   { name: "Understand", href: "/circulars/upload", icon: BookOpen, group: "Intelligence" },
   { name: "Identify", href: "/identify", icon: GitCompare, group: "Intelligence" },
+  { name: "Review Queue", href: "/review-queue", icon: Eye, group: "Intelligence" },
   { name: "Act", href: "/act", icon: CheckSquare, group: "Compliance" },
   { name: "Reports", href: "/reports", icon: PieChart, group: "Compliance" },
   { name: "Audit Logs", href: "/audit-logs", icon: ShieldCheck, group: "Compliance" },
@@ -48,7 +49,7 @@ export default function Sidebar() {
   };
 
   const isActive = (item: typeof navigation[0]) => {
-    if (item.name === "Circulars") return pathname.startsWith("/circulars");
+    if (item.name === "Circulars" && pathname.startsWith("/circulars") && !pathname.startsWith("/circulars/upload")) return true;
     return pathname === item.href;
   };
 

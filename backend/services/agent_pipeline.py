@@ -155,4 +155,4 @@ workflow.add_edge("generate_tasks", END)
 
 # Compile graph
 agent_pipeline = workflow.compile()
-print("🚀 LangGraph Compliance Agent Pipeline Compiled Successfully!")
+print("LangGraph Compliance Agent Pipeline Compiled Successfully!")

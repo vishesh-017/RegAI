@@ -26,7 +26,7 @@ export const ROLE_CONFIG: Record<UserRole, {
     sidebarItems: [
       "Dashboard", "Analytics", "Timeline",
       "Circulars", "Understand", "Identify",
-      "Act", "Reports", "Audit Logs", "Notifications",
+      "Review Queue", "Act", "Reports", "Audit Logs", "Notifications",
     ],
     canApproveObligations: true,
     canRejectObligations: true,
@@ -45,13 +45,13 @@ export const ROLE_CONFIG: Record<UserRole, {
     allowedRoutes: [
       "/dashboard", "/analytics", "/timeline",
       "/circulars", "/circulars/upload", "/circulars/[id]",
-      "/identify", "/act", "/notifications", "/reports",
+      "/review-queue", "/identify", "/act", "/notifications", "/reports",
       "/profile",
     ],
     sidebarItems: [
       "Dashboard", "Analytics", "Timeline",
       "Circulars", "Understand", "Identify",
-      "Act", "Reports", "Notifications",
+      "Review Queue", "Act", "Reports", "Notifications",
     ],
     canApproveObligations: true,
     canRejectObligations: true,
@@ -95,7 +95,7 @@ export const ROLE_CONFIG: Record<UserRole, {
     allowedRoutes: [
       "/dashboard", "/analytics", "/timeline",
       "/circulars", "/circulars/[id]",
-      "/audit-logs", "/reports", "/notifications",
+      "/review-queue", "/audit-logs", "/reports", "/notifications",
       "/profile",
     ],
     sidebarItems: [
